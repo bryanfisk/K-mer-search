@@ -17,7 +17,7 @@ def split_headers(file):
     sequences = []
     with open(file) as f:
         counter = 0
-        print("Parsing fastq input.")
+        print("Parsing fastq.")
         if pattern.match(file):
             for line in f:
                 if counter % 4 == 1:
@@ -25,7 +25,7 @@ def split_headers(file):
                 counter += 1
             return headers, make_kmers(sequences)
         else:
-            print("Parsing fna reference.")
+            print("Parsing fna.")
             for line in f:
                 if line[0] == '>':
                     headers.append(line.strip())
