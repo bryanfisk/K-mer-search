@@ -75,7 +75,7 @@ def combine(t):
                 output.append(tup)
     return output
 
-input = "ecoli12.fastq"
+input = "ecoli.fastq"
 reference = "E. coli genome.fna"
 
 input_headers, input_hash = split_headers(input)#args.input)
