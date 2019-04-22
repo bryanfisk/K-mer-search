@@ -115,9 +115,9 @@ ref_common = compile_uniques(ref_hash, intersection)
 print('Compiling and normalizing unique input k-mers counts.')
 input_common = compile_uniques(input_hash, intersection)
 
-print('Calculating distance.')
+print('Calculating similarity score.')
 diff = sum([abs(input_common[x] - ref_common[x]) for x in range(len(input_common))])
-score = round(-math.log(diff) + 1, 2)
+score = round(-math.log(diff/2), 2)
 
 print('Similarity:', score)
 
