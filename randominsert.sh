@@ -11,7 +11,6 @@ inputlength=$(expr $inputlength / 4)
 for x in $(seq $inputlength); do
 	getpos
 	for y in $(seq 4); do
-		line=$(sed "$(expr ${pos} + $y)!d" $1)
-		printf "$line\n"
+		$(sed "$($pos, $((pos + $y)))!d" $1) >> "short_$1"
 	done
 done

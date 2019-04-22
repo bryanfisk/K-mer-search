@@ -1,7 +1,10 @@
+import matplotlib.pyplot as plt
 import argparse
+import math
+import os
 import re
 
-k_mer_size = 15
+kmer_size = 4
 
 #get options from command line input
 parser = argparse.ArgumentParser(description = 'Generate reverse complement for sequence input.')
@@ -12,20 +15,21 @@ args = parser.parse_args()
 
 #split headers from sequences from fastq file
 def split_headers(file):
+    os.system('cls')
     pattern = re.compile('.*\.fastq$')
     headers = []
     sequences = []
     with open(file) as f:
         counter = 0
-        print("Parsing fastq.")
         if pattern.match(file):
+            print("Parsing {}.".format(file))
             for line in f:
                 if counter % 4 == 1:
-                    sequences.append(line.strip())
+                    sequences.append(line.strip().replace("N", ""))
                 counter += 1
-            return headers, make_kmers(sequences)
+            return headers, make_kmer_dict(sequences, file)
         else:
-            print("Parsing fna.")
+            print("Parsing {}.".format(file))
             for line in f:
                 if line[0] == '>':
                     headers.append(line.strip())
@@ -34,26 +38,31 @@ def split_headers(file):
                 else:
                     sequences.append('')
                     sequences[len(headers) - 1] += line.strip()
-            return headers, make_kmers(sequences)
+            return headers, make_kmer_dict(sequences, file)
 
 #produces kmers from a list of sequences
-def make_kmers(seq_list):
-    print("Making kmers.")
+def make_kmer_dict(seq_list, file):
     length = len(seq_list)
-    fivepercent = length * 5 // 100
-    kmer_list = []
-    count = 0
-    for seq in seq_list:
-        if count % fivepercent == 0 and count > fivepercent - 1:
-            print(round(count * 100 / length), "% done.")
-        kmer_sublist = []
-        for character in range(len(seq) - k_mer_size):
-            kmer_sublist.append(seq[character : character + k_mer_size])
-        kmer_list.append(kmer_sublist)
-        count += 1
-    print("Hashing kmers.")
-    kmer_hash = [[hash(kmer) for kmer in sub_list] for sub_list in kmer_list]
-    return kmer_hash
+    if length > 1:
+        twopercent = length // 50
+    else:
+        twopercent = 1
+    kmer_dict = {}
+    for index, seq in enumerate(seq_list):
+        totalpercent = math.ceil((index + 1) / length * 100)
+        if index % twopercent == 0:
+            os.system('cls')
+            blocks = math.ceil((index + 1) / length * 50)
+            noblocks = 50 - blocks
+            print("Making k-mers from {}.".format(file))
+            print("█" * blocks, "-" * noblocks, ' {:d}%'.format(totalpercent), sep = "")
+        for character in range(len(seq) - kmer_size):
+            kmer = hash(seq[character : character + kmer_size])
+            if kmer in kmer_dict:
+                kmer_dict[kmer] += 1
+            else:
+                kmer_dict[kmer] = 1
+    return kmer_dict
 
 #Takes list of tuples and combines tuples that overlap one another. Leaves non-overlapping tuples alone.
 def combine(t):
@@ -75,27 +84,45 @@ def combine(t):
                 output.append(tup)
     return output
 
-input = "ecoli.fastq"
-reference = "E. coli genome.fna"
+def compile_uniques(dictionary, intersection):
+    common = [dictionary[x] for x in intersection]
+    common.sort()
+    common_sum = sum(common)
+    common = [x / common_sum for x in common]
+    return common
+
+input = "filtered_SRR061908.fastq"
+reference = "betapapillomavirus.fna"
 
 input_headers, input_hash = split_headers(input)#args.input)
 ref_headers, ref_hash = split_headers(reference)#reference.txt)
 
-hash_dict = {hash:"" for sequence in input_hash for hash in sequence}
+#Make dictionary with each hashsed kmer as a key 
+#and the number of times that kmer is encountered as a value     
 
-nc = 0
-match_count = 0
-print("Comparing kmers.")
-for contig in ref_hash:
-    nc += 1 
-    print("contig", nc, "of", len(ref_hash))
-    for hash in contig:
-        if hash in hash_dict:
-            match_count += 1
+ref_unique_kmers = [k for k, v in ref_hash.items() if v == 1]
+input_unique_kmers = [k for k, v in input_hash.items() if v == 1]
 
-print(match_count)
-total_length = sum([len(k) for k in ref_hash])
-print(total_length)
-percent_match = match_count / total_length
+print('Different reference k-mers: {}\nReference unique k-mers: {}\nDifferent input k-mers: {}\nInput unique k-mers: {}'.format(len(ref_hash), len(ref_unique_kmers), len(input_hash), len(input_unique_kmers)))
 
-print('Percent reference genome kmers matching input kmers: ', percent_match )
+print('Intersection')
+intersection = set(ref_hash.keys()).intersection(input_hash.keys())
+print('Number of shared k-mers:', len(intersection))
+
+print('Compiling and normalizing unique reference k-mers counts.')
+ref_common = compile_uniques(ref_hash, intersection)
+
+print('Compiling and normalizing unique input k-mers counts.')
+input_common = compile_uniques(input_hash, intersection)
+
+print('Calculating distance.')
+diff = sum([abs(input_common[x] - ref_common[x]) for x in range(len(input_common))])
+score = round(-math.log(diff) + 1, 2)
+
+print('Similarity:', score)
+
+plt.plot(ref_common)
+plt.plot(input_common)
+plt.title('Frequencies of Shared k-mers')
+plt.legend(loc = 'upper left', labels = ('Reference', 'Input'))
+plt.show()
