@@ -1,0 +1,16 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/filter.py
+/ecoli.fastq
+/betapapillomavirus.fna
+/.vs/VSWorkspaceState.json
+*.suo
+/short_SRX036971.fastq
+/shorter_SRX036971.fastq
+/filtered_SRR061908.fastq
+/SRX036971.fastq
+/SRR061908.fastq
+/SRA references.txt
+/E. coli genome.fna

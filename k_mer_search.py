@@ -1,7 +1,9 @@
 import argparse
+import math
+import os
 import re
 
-k_mer_size = 15
+kmer_size = 15
 
 #get options from command line input
 parser = argparse.ArgumentParser(description = 'Generate reverse complement for sequence input.')
@@ -23,7 +25,7 @@ def split_headers(file):
                 if counter % 4 == 1:
                     sequences.append(line.strip())
                 counter += 1
-            return headers, make_kmers(sequences)
+            return headers, make_kmer_dict(sequences, file)
         else:
             print("Parsing fna.")
             for line in f:
@@ -34,26 +36,31 @@ def split_headers(file):
                 else:
                     sequences.append('')
                     sequences[len(headers) - 1] += line.strip()
-            return headers, make_kmers(sequences)
+            return headers, make_kmer_dict(sequences, file)
 
 #produces kmers from a list of sequences
-def make_kmers(seq_list):
-    print("Making kmers.")
+def make_kmer_dict(seq_list, file):
     length = len(seq_list)
-    fivepercent = length * 5 // 100
-    kmer_list = []
-    count = 0
-    for seq in seq_list:
-        if count % fivepercent == 0 and count > fivepercent - 1:
-            print(round(count * 100 / length), "% done.")
-        kmer_sublist = []
-        for character in range(len(seq) - k_mer_size):
-            kmer_sublist.append(seq[character : character + k_mer_size])
-        kmer_list.append(kmer_sublist)
-        count += 1
-    print("Hashing kmers.")
-    kmer_hash = [[hash(kmer) for kmer in sub_list] for sub_list in kmer_list]
-    return kmer_hash
+    if length > 1:
+        twopercent = length // 50
+    else:
+        twopercent = 1
+    kmer_dict = {}
+    for index, seq in enumerate(seq_list):
+        totalpercent = math.ceil((index + 1) / length * 100)
+        if index % twopercent == 0:
+            os.system('cls')
+            blocks = math.ceil((index + 1) / length * 50)
+            noblocks = 50 - blocks
+            print("Making k-mers from {}.".format(file))
+            print("█" * blocks, "-" * noblocks, ' {:d}%'.format(totalpercent), sep = "")
+        for character in range(len(seq) - kmer_size):
+            kmer = hash(seq[character : character + kmer_size])
+            if kmer in kmer_dict:
+                pass
+            else:
+                kmer_dict[kmer] = ""
+    return kmer_dict
 
 #Takes list of tuples and combines tuples that overlap one another. Leaves non-overlapping tuples alone.
 def combine(t):
@@ -81,21 +88,14 @@ reference = "E. coli genome.fna"
 input_headers, input_hash = split_headers(input)#args.input)
 ref_headers, ref_hash = split_headers(reference)#reference.txt)
 
-hash_dict = {hash:"" for sequence in input_hash for hash in sequence}
+#hash_dict = {hash:"" for sequence in input_hash for hash in sequence}
 
-nc = 0
 match_count = 0
 print("Comparing kmers.")
-for contig in ref_hash:
-    nc += 1 
-    print("contig", nc, "of", len(ref_hash))
-    for hash in contig:
-        if hash in hash_dict:
-            match_count += 1
+for ref_kmer in ref_hash:
+    if ref_kmer in input_hash:
+        match_count += 1
 
-print(match_count)
-total_length = sum([len(k) for k in ref_hash])
-print(total_length)
-percent_match = match_count / total_length
+percent_match = match_count / len(ref_hash)
 
 print('Percent reference genome kmers matching input kmers: ', percent_match )
