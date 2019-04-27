@@ -91,8 +91,8 @@ def compile_uniques(dictionary, intersection):
     common = [x / common_sum for x in common]
     return common
 
-input = "filtered_SRR061908.fastq"
-reference = "betapapillomavirus.fna"
+input = "HCZRAFT02.Hu_121.fasta"
+reference = "e.coli_genome.fna"
 
 input_headers, input_hash = split_headers(input)#args.input)
 ref_headers, ref_hash = split_headers(reference)#reference.txt)
@@ -103,26 +103,27 @@ ref_headers, ref_hash = split_headers(reference)#reference.txt)
 ref_unique_kmers = [k for k, v in ref_hash.items() if v == 1]
 input_unique_kmers = [k for k, v in input_hash.items() if v == 1]
 
-print('Different reference k-mers: {}\nReference unique k-mers: {}\nDifferent input k-mers: {}\nInput unique k-mers: {}'.format(len(ref_hash), len(ref_unique_kmers), len(input_hash), len(input_unique_kmers)))
-
-print('Intersection')
 intersection = set(ref_hash.keys()).intersection(input_hash.keys())
-print('Number of shared k-mers:', len(intersection))
 
-print('Compiling and normalizing unique reference k-mers counts.')
 ref_common = compile_uniques(ref_hash, intersection)
-
-print('Compiling and normalizing unique input k-mers counts.')
 input_common = compile_uniques(input_hash, intersection)
 
-print('Calculating similarity score.')
 diff = sum([abs(input_common[x] - ref_common[x]) for x in range(len(input_common))])
 score = round(-math.log(diff/2), 2)
 
-print('Similarity:', score)
-
-plt.plot(ref_common)
-plt.plot(input_common)
-plt.title('Frequencies of Shared k-mers')
-plt.legend(loc = 'upper left', labels = ('Reference', 'Input'))
+fig = plt.figure()
+ax1 = fig.add_axes((0.1, 0.25, 0.8, 0.7))
+ax1.plot(ref_common)
+ax1.plot(input_common)
+ax1.set_title('Frequencies of Shared k-mers')
+ax1.legend(loc = 'upper left', labels = ('Reference', 'Input'))
+fig.text(0.1, 
+         0.05, 
+         'Different reference k-mers: {}     Unique reference k-mers: {}\n'.format(len(ref_hash), len(ref_unique_kmers)), ha = 'left')
+fig.text(0.1,
+         0.085, 
+         'Different input k-mers: {}            Unique input k-mers: {}\n'.format(len(input_hash), len(input_unique_kmers)), ha = 'left')
+fig.text(0.1,
+         0.12,
+         'Number of shared k-mers: {}       Similarity: {}\n'.format(len(intersection), score), ha = 'left')
 plt.show()
