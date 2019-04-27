@@ -96,6 +96,12 @@ for ref_kmer in ref_hash:
     if ref_kmer in input_hash:
         match_count += 1
 
-percent_match = match_count / len(ref_hash)
+percent_match = match_count / len(ref_hash) * 100
+prob_one_match = len(ref_hash) / 4 ** kmer_size
+average_match = prob_one_match * len(input_hash)
+average_prop_match = average_match / match_count
+probability = ((4 ** kmer_size) - len(ref_hash)) / (4 ** kmer_size)
 
-print('Percent reference genome kmers matching input kmers: ', percent_match )
+print('Percent reference genome kmers matching input kmers: {:.2f}%'.format(percent_match))
+print('Average expected number of random matches: {:f}\nproportion of all matches: {:.2f}'.format(average_match, average_prop_match))
+
