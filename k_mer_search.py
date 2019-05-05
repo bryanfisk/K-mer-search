@@ -49,11 +49,11 @@ def make_kmer_dict(seq_list, file):
     for index, seq in enumerate(seq_list):
         totalpercent = math.ceil((index + 1) / length * 100)
         if index % twopercent == 0:
-            os.system('cls')
+            os.system('cls' if os.name == 'nt' else 'clear')
             blocks = math.ceil((index + 1) / length * 50)
             noblocks = 50 - blocks
             print("Making k-mers from {}.".format(file))
-            print("█" * blocks, "-" * noblocks, ' {:d}%'.format(totalpercent), sep = "")
+            print("█" * blocks + "-" * noblocks + ' {:d}%'.format(totalpercent) + '\n')
         for character in range(len(seq) - kmer_size):
             kmer = hash(seq[character : character + kmer_size])
             if kmer in kmer_dict:
@@ -97,11 +97,14 @@ for ref_kmer in ref_hash:
         match_count += 1
 
 percent_match = match_count / len(ref_hash) * 100
-prob_one_match = len(ref_hash) / 4 ** kmer_size
-average_match = prob_one_match * len(input_hash)
-average_prop_match = average_match / match_count
-probability = ((4 ** kmer_size) - len(ref_hash)) / (4 ** kmer_size)
+prob_one_match = len(input_hash) / 4 ** kmer_size
+average_count = prob_one_match * len(input_hash)
+average_prop_match = average_count / match_count
 
-print('Percent reference genome kmers matching input kmers: {:.2f}%'.format(percent_match))
-print('Average expected number of random matches: {:f}\nproportion of all matches: {:.2f}'.format(average_match, average_prop_match))
+
+print('Number of reference k-mers: {}, number of input k-mers: {}'.format(len(ref_hash), len(input_hash)))
+print('Number of reference k-mers matched to input:', match_count)
+print('Percent reference genome k-mers matching input k-mers: {:.2f}%'.format(percent_match))
+print('Average expected number of random matches: {:.2f}\nproportion of all matches: {:.2f}'.format(average_count, average_prop_match))
+#os.system('\nRscript poisson.R {} {} {}'.format(match_count, len(input_hash), average_count / len(input_hash)))
 
