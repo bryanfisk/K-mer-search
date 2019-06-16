@@ -16,3 +16,9 @@
 /ecoli.fastq
 /.vs/k-mer search/v15/.suo
 /.vs/slnx.sqlite
+/positive_test.txt
+/output_backup.txt
+/output.txt
+/no_test_samples.txt
+/negative_test.txt
+/testecolifastq.gz
