@@ -1,50 +1,16 @@
 print("importing packages")
-#import matplotlib.pyplot as plt
+from scipy import sparse
 import hashlib
 import argparse
 import time
-import math
 import sys
 import os
-import re
-
-kmer_size = 15
-file_dir = "C:/Users/bryan/Desktop/metagenomes/finished/"
-#input = "ecoli.fastq"
-#reference = "e.coli_genome.fna"
-reference = "C:/Users/bryan/Desktop/metagenomes/clostridioides_difficile_genome.fna"
-
-#get files from root directory
-for _, _, files in os.walk(file_dir):
-    pass
-
 import random
-import string
-random.seed(42)	
-
-def numsplit(string, n):
-	if len(string) < n: return string
-	numsplits = len(string) // n
-	return [string[x : x + n] for x in range(0, numsplits * n, n)]
-		
-def pad(string, n):
-	if len(string) < n:
-		numzeroes = n - len(string)
-		string = string + [0 for _ in range(numzeroes)]
-	elif len(string) > n:
-		totallength = (len(string) // n) * n + n
-		numzeroes = totallength - len(string)
-		string = string + [0 for _ in range(numzeroes)]
-	return string
-
-#progress bar
-def progress(count, total, status = ''):
-    bar_len = 60
-    filled_len = int(round(bar_len * count / float(total)))
-    percents = round( 100.0 * count / float(total), 1)
-    bar = '■' * filled_len + '-' * (bar_len - filled_len)
-    sys.stdout.write('|{:}| {:}{:}  {:}\r'.format(bar, percents, '%', status))
-    sys.stdout.flush()
+random.seed(42)
+start_time = time.time()
+kmer_size = 15
+file_dir = "D:/Desktop/metagenomes/test_folder"#finished"
+reference = "D:/Desktop/metagenomes/clostridioides_difficile_genome.fna"
 
 #get options from command line input
 parser = argparse.ArgumentParser(description = 'Generate reverse complement for sequence input.')
@@ -53,70 +19,72 @@ parser.add_argument('--input', '-i', help = 'Set input file.')
 parser.add_argument('--kmer', '-k', const = 10, type = int, help = 'Set k-mer size. (10)', nargs = '?')
 args = parser.parse_args()
 
-#split headers from sequences from fastq file
+#progress bar
+def progress(count, total, status = ''):
+    bar_len = 60
+    filled_len = int(round(bar_len * count / float(total)))
+    percents = int(100.0 * count / float(total))
+    bar = '■' * filled_len + '-' * (bar_len - filled_len)
+    sys.stdout.write('|{}| {}% {}\r'.format(bar, percents, status))
+    sys.stdout.flush()
+
+def format_time(start, end):
+    elapsed = end - start
+    hours = int(elapsed // 3600)
+    minutes = int(elapsed - hours * 3600) // 60
+    seconds = int(elapsed - hours * 3600 - minutes * 60)
+    return '{:02d}:{:02d}:{:02d}'.format(hours, minutes, seconds)
+
+#split sequences from headers in fastq file
 def split_headers(file):
-    #os.system('cls')
-    pattern = re.compile('.*\.fastq$')
-    headers = []
     sequences = []
     with open(file) as f:
-        counter = 0
-        if pattern.match(file):
+        if '.fastq' in file:
+            counter = 0
             print("Parsing {}.".format(file))
+            totalsize = os.path.getsize(file)
+            sumsize = 0
             for line in f:
+                sumsize += len(line)
+                if sumsize % 30000 == 0 or sumsize == totalsize:
+                    progress(sumsize, totalsize, 'parsing')
                 if counter % 4 == 1:
                     splitline = line.strip().replace("\n", "")
                     splitline = splitline.split("N")
                     splitline = list(filter(None, splitline))
                     if splitline != []:
                         [sequences.append(k) for k in splitline]
-                    #sequences.append(line.strip().replace("N", ""))
                 counter += 1
-            return headers, make_kmer_dict(sequences, file)
+            return sequences
         else:
-            print("parsing {}".format(file))
+            print("parsing {}.".format(file))
+            totalsize = os.path.getsize(file)
+            sumsize = 0
+            cat_line = ''
             for line in f:
+                sumsize += len(line)
+                if sumsize % 10000 == 0 or sumsize == totalsize:
+                    progress(sumsize, totalsize, 'parsing')
                 if line[0] == '>':
-                    headers.append(line.strip())
-                elif len(sequences) == len(headers):
-                    splitline = line.replace('\n', '').split("N")   #remove \n and N from sequences
-                    splitline = list(filter(None, splitline))       #remove empty strings (happens if multiple N's in a row)
-                    if splitline == []:     #remove empty lists (happens if 'N\n' is the string)
-                        continue
-                    sequences[len(headers) - 1] += splitline.pop(0).strip()     #add rest of line to previous sequence
-                    split_count = 1     #track headers for multiple sequences generated from one input sequence because of N's
-                    for item in splitline:
-                        headers.append("split_" + str(split_count))
-                        split_count += 1
-                        sequences.append(item)
+                    sequences, cat_line = clean_sequence(sequences, cat_line)
                 else:
-                    sequences.append('')
-                    splitline = line.replace('\n', '').split("N")
-                    splitline = list(filter(None, splitline))
-                    sequences[len(headers) - 1] += splitline.pop(0).strip()
-                    split_count = 1
-                    for item in splitline:
-                        headers.append("split_" + str(split_count))
-                        split_count += 1
-                        sequences.append(item)
-            return headers, make_kmer_dict(sequences, file)
+                    cat_line = cat_line + line
+            sequences, cat_line = clean_sequence(sequences, cat_line)
+            return sequences
+
+def clean_sequence(sequence_list, cat):
+    if cat != '':
+        cat = cat.replace('\n', '').split('N')
+        cat = list(filter(None, cat))
+        [sequence_list.append(k) for k in cat]
+    cat = ''
+    return sequence_list, cat
 
 #produces kmers from a list of sequences
-def make_kmer_dict(seq_list, file):
+def make_kmer_dict(seq_list):
     length = len(seq_list)
-    #if length > 50:
-    #    twopercent = length // 50
-    #else:
-    #    twopercent = 1
     kmer_dict = {}
     for index, seq in enumerate(seq_list):
-        #totalpercent = math.ceil((index + 1) / length * 100)
-        #if index % twopercent == 0:
-            #os.system('cls')
-            #blocks = math.ceil((index + 1) / length * 50)
-            #noblocks = 50 - blocks
-            #print("Making k-mers from {}.".format(file))
-            #print("█" * blocks, "-" * noblocks, ' {:d}%'.format(totalpercent), sep = "")
         for character in range(len(seq) - kmer_size):
             hasher = hashlib.blake2b(bytes(seq[character : character + kmer_size], 'utf8'), digest_size = 7)
             kmer = int(hasher.hexdigest(), 16)
@@ -125,124 +93,71 @@ def make_kmer_dict(seq_list, file):
             else:
                 kmer_dict[kmer] = 1
         if index % 10000 == 0:
-            progress(index, length, "making kmers {:.0f} seconds elapsed".format(time.time() - starttime))
-    progress(length, length, "making kmers {:.0f} seconds elapsed".format(time.time() - starttime))
+            time_elapsed = time.time() - start_time
+            progress(index, length, "making kmers {} elapsed".format(format_time(start_time, time.time())))
+    progress(length, length, "making kmers {} elapsed".format(format_time(start_time, time.time())))
     print()
     return kmer_dict
 
-#Takes list of tuples and combines tuples that overlap one another. Leaves non-overlapping tuples alone.
-def combine(t):
-    t.sort()
-    output = []
-    for tup in t:
-        if len(output) == 0:
-            output.append(tup)
+#take directory and reference input and return matrix of distance values of kmers in common
+def dir_to_matrix(dir, ref):
+    #set start time, parse reference, hash reference
+    ref_seq = split_headers(ref)
+    ref_hash = make_kmer_dict(ref_seq)
+    X = sparse.csc_matrix((0, 0))
+    y = sparse.csc_matrix((0, 0))
+    header_dict = {}
+    new_item_count = 0
+    for index, file in enumerate(os.listdir(dir)):
+        #columns = X.shape[1]
+        
+        #make label matrix
+        if 'pos_' in file:
+            y = sparse.hstack((y, [1]))
         else:
-            flag = True
-            for i, o in enumerate(output):
-                if tup[0] < o[0] and tup[1] >= o[0]:
-                    output[i] = (tup[0], o[1])
-                    flag = False
-                if tup[0] <= o[1] and tup[1] > o[1]:
-                    output[i] = (o[0], tup[1])
-                    flag = False
-            if (tup[0] > o[1] or tup[1] < o[0]) and flag == True:
-                output.append(tup)
-    return output
+            y = sparse.hstack((y, [0]))
+        
+        #parse input, hash input, get input-reference common kmer distances
+        input_seq = split_headers(file_dir + '/' + file)
+        input_hash = make_kmer_dict(input_seq)
+        intersection = tuple(set(ref_hash.keys()).intersection(input_hash.keys()))
+        for item in intersection:
+            if item not in header_dict:
+                header_dict[item] = new_item_count
+                new_item_count += 1
+        interdist = [abs(ref_hash[x] - input_hash[x]) for x in intersection]
+        rows = [0 for _ in range(len(interdist))]
+        intersection = [header_dict[x] for x in intersection]
+        temp_matrix = sparse.csc_matrix((interdist, (rows, intersection)))
+        
+        #pad either matrix depending on which is shorter
+        if temp_matrix.shape[1] > X.shape[1]:#columns:
+            X.resize((X.shape[0], temp_matrix.shape[1]))
+        elif temp_matrix.shape[1] < X.shape[1]:#columns:
+            temp_matrix.resize((1, X.shape[1]))
 
-def compile_uniques(dictionary, intersection):
-    common = [dictionary[x] for x in intersection]
-    common.sort()
-    common_sum = sum(common)
-    common = [x / common_sum for x in common]
-    return common
+        #append temp_matrix to X
+        X = sparse.vstack((X, temp_matrix))
+    return X, y
 
-def find_indices(d, s):
-    temp = []
-    for x in range(len(s)):
-        if s[x] in d:
-            temp.append((x, d[s[x]]))
-    return temp
+#reduce dimensionality by removing columns with the same values
+def remove_redundant_columns(D):
+    D = D.tocsc()
+    start_length = D.shape[1]
+    print('starting length:', start_length)
+    keepset = [x for x in range(D.shape[1])]
+    for column in range(D.shape[1]):
+        if column % 10000 == 0:
+            progress(column, D.shape[1], "reducing dims, {} elapsed".format(format_time(start_time, time.time())))
+        if max(D[:,column].toarray()) == min(D[:,column].toarray()):
+            keepset.remove(column)
+    print(D.shape)
+    D = D[:, keepset]
+    print('\n' ,start_length, "columns reduced to", D.shape)
+    return D
 
-starttime = time.time()
+X, y = dir_to_matrix(file_dir, reference)
+X = remove_redundant_columns(X)
 
-ref_headers, ref_hash = split_headers(reference)
-
-#Make dictionary with each hashsed kmer as a key 
-#and the number of times that kmer is encountered as a value     
-
-ref_unique_kmers = [k for k, v in ref_hash.items() if v == 1]
-
-fileout = open('output.txt', 'w+')
-masterset = set()
-feature_dict_raw = {}
-for index, file in enumerate(files):
-    input_headers, input_hash = split_headers(file_dir + file)
-    input_unique_kmers = [k for k, v in input_hash.items() if v == 1]
-
-    intersection = set(ref_hash.keys()).intersection(input_hash.keys())
-    intersection = tuple(intersection)
-    interdist = [abs(ref_hash[x] - input_hash[x]) for x in intersection]
-
-    #ref_common = compile_uniques(ref_hash, intersection)
-    #input_common = compile_uniques(input_hash, intersection)
-
-    #diff = sum([abs(input_common[x] - ref_common[x]) for x in range(len(input_common))])
-    #score = round(-math.log(diff/2), 2)
-    #jaccard_dist = len(input_common) / (len(ref_unique_kmers) + len(input_unique_kmers) + len(input_common))
-
-    distancedict = {str(intersection[x]) : str(interdist[x]) for x in range(len(intersection))}
-
-    keys = list(distancedict.keys())
-    values = list(distancedict.values())
-
-    fileout.write(file + '\n')
-    fileout.write(','.join(keys) + '\n')
-    fileout.write(','.join(values) + '\n')
-    #feature_dict_raw[file] = distancedict
-
-'''
-for i in intersection:
-    if i not in masterset:
-        masterset.add(i)
-
-masterset = tuple(masterset)
-feature_dict_final = {}
-count = 1
-for key, value in list(feature_dict_raw.items()):
-    feature_dict_final[key] = ['0' for _ in masterset]
-    index_value_pairs = find_indices(value, masterset)
-    for index, value in index_value_pairs:
-        if count % 1000 == 0:
-            print(count)
-        feature_dict_final[key][index] = value
-        count += 1
-
-with open("output.csv", 'w') as output:
-    output.write('label,' + ','.join(list(map(str, masterset))) + '\n')
-    for label, feature in list(feature_dict_final.items()):
-        temp = str(feature)
-        output.write(label + ',' + ','.join(feature))
-
-
-
-    #plot stuff
-    fig = plt.figure()
-    ax1 = fig.add_axes((0.15, 0.25, 0.8, 0.7))
-    ax1.plot(ref_common)
-    ax1.plot(input_common)
-    ax1.set_title('Frequencies of Shared k-mers')
-    ax1.set_ylabel('K-mer frequency', rotation = 90)
-    ax1.set_xlabel('K-mer index')
-    ax1.legend(loc = 'upper left', labels = ('Reference', 'Input'))
-    fig.text(0.1, 
-             0.03, 
-             'Different reference k-mers: {}     Unique reference k-mers: {}\n'.format(len(ref_hash), len(ref_unique_kmers)), ha = 'left')
-    fig.text(0.1,
-             0.065, 
-             'Different input k-mers: {}            Unique input k-mers: {}\n'.format(len(input_hash), len(input_unique_kmers)), ha = 'left')
-    fig.text(0.1,
-             0.1,
-             'Number of shared k-mers: {}       Jaccard Distance: {:.2f}\n'.format(len(intersection), jaccard_dist), ha = 'left')
-    plt.show()
-    '''
+#sparse.save_npz('X.npz', X)
+#sparse.save_npz('y.npz', y)

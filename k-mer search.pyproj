@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>a04f3500-b257-4a29-a5d5-2625a7cf99bb</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>machine_learning.py</StartupFile>
+    <StartupFile>k_mer_search.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
