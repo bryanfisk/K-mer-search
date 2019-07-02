@@ -9,7 +9,7 @@ import random
 random.seed(42)
 start_time = time.time()
 kmer_size = 15
-file_dir = "D:/Desktop/metagenomes/test_folder"#finished"
+file_dir = "D:/Desktop/metagenomes/finished"
 reference = "D:/Desktop/metagenomes/clostridioides_difficile_genome.fna"
 
 #get options from command line input
@@ -104,12 +104,13 @@ def dir_to_matrix(dir, ref):
     #set start time, parse reference, hash reference
     ref_seq = split_headers(ref)
     ref_hash = make_kmer_dict(ref_seq)
-    X = sparse.csc_matrix((0, 0))
+    X = sparse.lil_matrix((len(os.listdir(dir)), 0))
+    print(len(os.listdir(dir)))
     y = sparse.csc_matrix((0, 0))
     header_dict = {}
     new_item_count = 0
+    row_count = 0
     for index, file in enumerate(os.listdir(dir)):
-        #columns = X.shape[1]
         
         #make label matrix
         if 'pos_' in file:
@@ -128,16 +129,15 @@ def dir_to_matrix(dir, ref):
         interdist = [abs(ref_hash[x] - input_hash[x]) for x in intersection]
         rows = [0 for _ in range(len(interdist))]
         intersection = [header_dict[x] for x in intersection]
-        temp_matrix = sparse.csc_matrix((interdist, (rows, intersection)))
         
-        #pad either matrix depending on which is shorter
-        if temp_matrix.shape[1] > X.shape[1]:#columns:
-            X.resize((X.shape[0], temp_matrix.shape[1]))
-        elif temp_matrix.shape[1] < X.shape[1]:#columns:
-            temp_matrix.resize((1, X.shape[1]))
+        #pad matrix if shorter than input
+        if max(intersection) > X.shape[1]:#columns:
+            X.resize((X.shape[0], max(intersection)))
 
-        #append temp_matrix to X
-        X = sparse.vstack((X, temp_matrix))
+        #set matrix values from input
+        for index, item in enumerate(intersection):
+            X[row_count, item - 1] = interdist[index]
+        row_count += 1
     return X, y
 
 #reduce dimensionality by removing columns with the same values
@@ -159,5 +159,5 @@ def remove_redundant_columns(D):
 X, y = dir_to_matrix(file_dir, reference)
 X = remove_redundant_columns(X)
 
-#sparse.save_npz('X.npz', X)
-#sparse.save_npz('y.npz', y)
+sparse.save_npz('X.npz', X)
+sparse.save_npz('y.npz', y)
