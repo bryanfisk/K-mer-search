@@ -24,6 +24,9 @@
     <Compile Include="extract_features.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="functions.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="k_mer_search.py" />
     <Compile Include="machine_learning.py" />
     <Compile Include="chash.py">
