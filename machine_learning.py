@@ -25,8 +25,8 @@ with open("index_dictionary.tsv") as file:
         key, value = list(map(int, line.strip().split()))
         index_dictionary[key] = value
 
-ref_seq = split_headers(ref)
-ref_hash = make_kmer_dict(ref_seq)
+#ref_seq = split_headers(ref)
+#ref_hash = make_kmer_dict(ref_seq)
 #X_val = sparse.lil_matrix((len(os.listdir(file_dir)), 0))
 X_val = sparse.csr_matrix((0, 0))
 row_count = 0
@@ -44,7 +44,7 @@ for file in os.listdir(file_dir):
     max_key = max(index_dictionary.values())
     row = [0 for x in range(len(input_hash))]
     col = [index_dictionary[key] - 1 for key in input_hash.keys()]
-    data = np.fromiter(input_hash.values(), dtype = int) # running out of memory, wat do?
+    data = tuple(input_hash.values()) # running out of memory, wat do?
     temp = sparse.csr_matrix((data, (row, col)))
     if X_val.shape[1] < max_key:
         X_val.resize(X_val.shape[0], max_key)
