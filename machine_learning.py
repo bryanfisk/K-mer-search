@@ -8,6 +8,7 @@ import numpy as np
 import scipy
 import time
 import os
+import sys
 
 kmer_size = 15
 #file_dir = "D:/Desktop/metagenomes/reallifesamples"
@@ -42,10 +43,15 @@ for file in os.listdir(file_dir):
             index_dictionary[key] = max_value + new_item_count
             new_item_count += 1
     max_key = max(index_dictionary.values())
-    row = [0 for x in range(len(input_hash))]
-    col = [index_dictionary[key] - 1 for key in input_hash.keys()]
+    row = (0,) * input_hash_length
+    col = tuple(index_dictionary[key] - 1 for key in input_hash.keys())
     data = tuple(input_hash.values()) # running out of memory, wat do?
+    del input_hash
+    del input_seq
     temp = sparse.csr_matrix((data, (row, col)))
+    del data
+    del row
+    del col
     if X_val.shape[1] < max_key:
         X_val.resize(X_val.shape[0], max_key)
         columns_in_X_val.resize(1, max_key)
@@ -54,19 +60,11 @@ for file in os.listdir(file_dir):
 
 column_list = columns_in_X_val.toarray()[0]
 
-'''
-column_list = []
-for column in range(columns_in_X_val.shape[1]):
-    if columns_in_X_val[:, column] > 0:
-        column_list.append(column)
-'''
-
 if X.shape[1] < X_val.shape[1]:
     X.resize(X.shape[0], X_val.shape[1])
 elif X.shape[1] > X_val.shape[1]:
     X_val.resize(X_val.shape[0], X.shape[1])
 
-#keepset = remove_redundant_columns(X_val)
 X = X[:, column_list > 0]
 X_val = X_val[:, column_list > 0]
 
@@ -80,21 +78,3 @@ with open("output.csv", "w") as output:
     for sample_index in range(len(os.listdir(file_dir))):
         print("{} : {}".format(os.listdir(file_dir)[sample_index], solution[sample_index]))
         output.write("{},{}\n".format(os.listdir(file_dir)[sample_index], solution[sample_index][1]))
-
-
-
-
-
-
-'''
-#split dictionary into list of sub-dictionaries
-def split_dict(dict, num_splits):
-dict_list = []
-for split in range(num_splits):
-    split_size = math.ceil(len(dict)/num_splits)
-    temp_dict = dict(list(dict.items())[split * split_size : split * split_size + split_size])
-    dict_list.append(temp_dict)
-while {} in dict_list:
-    dict_list.remove({})
-return dict_list
-'''
