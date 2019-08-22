@@ -13,7 +13,7 @@ def progress(count, total, status = ''):
     bar_len = 60
     filled_len = int(round(bar_len * count / float(total)))
     percents = int(100.0 * count / float(total))
-    bar = '■' * filled_len + '-' * (bar_len - filled_len)
+    bar = '=' * filled_len + ' ' * (bar_len - filled_len)
     sys.stdout.write('|{}| {}% {}\r'.format(bar, percents, status))
     sys.stdout.flush()
 
@@ -81,6 +81,25 @@ def make_kmer_dict(seq_list):
                 kmer_dict[kmer] += 1
             else:
                 kmer_dict[kmer] = 1
+        if index % 10000 == 0:
+            time_elapsed = time.time() - start_time
+            progress(index, length, "counting kmers {} elapsed".format(format_time(start_time, time.time())))
+    progress(length, length, "counting kmers {} elapsed".format(format_time(start_time, time.time())))
+    print()
+    return kmer_dict
+
+def compare_kmer_dict(seq_list, ref_dict):
+    length = len(seq_list)
+    intersection_dict = {}
+    for index, seq in enumerate(seq_list):
+        for character in range(len(seq) - kmer_size):
+            hasher = hashlib.blake2b(bytes(seq[character : character + kmer_size], 'utf8'), digest_size = 7)
+            kmer = int(hasher.hexdigest(), 16)
+            if kmer in kmer_dict:
+                kmer_dict[kmer] += 1
+            else:
+                if kmer in ref_dict:
+                    kmer_dict[kmer] = 1
         if index % 10000 == 0:
             time_elapsed = time.time() - start_time
             progress(index, length, "counting kmers {} elapsed".format(format_time(start_time, time.time())))

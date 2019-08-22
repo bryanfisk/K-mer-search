@@ -15,7 +15,7 @@ parser.add_argument('--input', '-i', help = 'Set input file.')
 parser.add_argument('--kmer', '-k', const = 10, type = int, help = 'Set k-mer size. (10)', nargs = '?')
 args = parser.parse_args()
 
-X, y, index_dictionary = dir_to_matrix(sample_files, reference)
+X, y, index_dictionary = dir_to_matrix(file_dir, reference)
 
 sparse.save_npz('X.npz', X)
 sparse.save_npz('y.npz', y)

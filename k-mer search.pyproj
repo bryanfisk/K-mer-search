@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>a04f3500-b257-4a29-a5d5-2625a7cf99bb</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>machine_learning.py</StartupFile>
+    <StartupFile>temp.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -30,6 +30,9 @@
     <Compile Include="k_mer_search.py" />
     <Compile Include="machine_learning.py" />
     <Compile Include="chash.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="temp.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>

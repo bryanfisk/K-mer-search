@@ -27,3 +27,17 @@
 /y.npz
 /X.npz
 /output.csv
+/output_SVC_default_gammaauto.tsv
+/output_SVC_default_gammaauto.csv
+/output_RFC_default_100e.tsv
+/output_RFC_default_100e.csv
+/output_MNB_default.csv
+/output_KNN_default.tsv
+/output_KNN_default.csv
+/output.tsv
+/new_SVC_gammaauto.tsv
+/new_RFC_100e.tsv
+/new_MNB_default.tsv
+/new_KNN_default.tsv
+/temp2
+/temp1
